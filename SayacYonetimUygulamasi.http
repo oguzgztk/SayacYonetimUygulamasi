@@ -1,0 +1,6 @@
+@SayacYonetimUygulamasi_HostAddress = http://localhost:5249
+
+GET {{SayacYonetimUygulamasi_HostAddress}}/
+Accept: application/json
+
+###
