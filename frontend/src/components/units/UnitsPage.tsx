@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Archive, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Archive, ChevronRight, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { UnitDetail } from '@/components/units/UnitDetail'
 import {
   useCommunicationUnits,
   useCreateCommunicationUnit,
@@ -32,6 +34,7 @@ export function UnitsPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<CommunicationUnit | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [selected, setSelected] = useState<CommunicationUnit | null>(null)
 
   const { data: units = [], isLoading, isError } = useCommunicationUnits()
   const { data: deleted = [], isLoading: deletedLoading } =
@@ -57,12 +60,14 @@ export function UnitsPage() {
   function startEdit(unit: CommunicationUnit) {
     setEditingId(unit.id)
     setShowForm(true)
+    setSelected(null)
     reset({ name: unit.name, ipAddress: unit.ipAddress, port: unit.port })
   }
 
   function startCreate() {
     setEditingId(null)
     setShowForm(true)
+    setSelected(null)
     reset({ name: '', ipAddress: '', port: 502 })
   }
 
@@ -70,6 +75,13 @@ export function UnitsPage() {
     setShowForm(false)
     setEditingId(null)
     reset({ name: '', ipAddress: '', port: 502 })
+  }
+
+  function handleRowClick(unit: CommunicationUnit) {
+    if (showDeleted) return
+    setSelected((prev) => (prev?.id === unit.id ? null : unit))
+    setShowForm(false)
+    setEditingId(null)
   }
 
   const onSubmit = handleSubmit(async (values: UnitFormValues) => {
@@ -92,6 +104,7 @@ export function UnitsPage() {
     try {
       await deleteMutation.mutateAsync(deleting.id)
       toast({ title: 'Arşivlendi', description: 'Ünite silinenlere taşındı.' })
+      if (selected?.id === deleting.id) setSelected(null)
       setDeleting(null)
     } catch {
       toast({
@@ -112,21 +125,20 @@ export function UnitsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Haberleşme Üniteleri</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Saha cihazlarının bağlandığı ağ uç noktalarını tanımlayın.
-          </p>
-        </div>
-        {!showDeleted && !showForm && (
-          <Button onClick={startCreate}>
-            <Plus className="h-4 w-4" />
-            Yeni ünite
-          </Button>
-        )}
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Haberleşme üniteleri"
+        description="RTU ve saha modemlerinin ağ adreslerini tanımlayın; ünite satırına tıklayarak bağlı sayaçları görün."
+        actions={
+          !showDeleted &&
+          !showForm && (
+            <Button onClick={startCreate}>
+              <Plus className="h-4 w-4" />
+              Yeni ünite
+            </Button>
+          )
+        }
+      />
 
       {showForm && !showDeleted && (
         <Card>
@@ -166,14 +178,20 @@ export function UnitsPage() {
       )}
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{showDeleted ? 'Silinen üniteler' : 'Ünite listesi'}</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border bg-surface/80">
+          <div>
+            <CardTitle className="text-sm font-semibold">
+              {showDeleted ? 'Silinen üniteler' : 'Ünite listesi'}
+            </CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">{list.length} kayıt</p>
+          </div>
           <Button
             variant={showDeleted ? 'default' : 'secondary'}
             size="sm"
             onClick={() => {
               setShowDeleted((v) => !v)
               setShowForm(false)
+              setSelected(null)
             }}
           >
             <Archive className="h-3.5 w-3.5" />
@@ -193,60 +211,92 @@ export function UnitsPage() {
           {list.length > 0 && (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Ad</TableHead>
-                  <TableHead>Adres</TableHead>
-                  <TableHead>Sayaç</TableHead>
-                  <TableHead className="w-24 text-right">İşlem</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-5" />
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Ad
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Adres
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Sayaç
+                  </TableHead>
+                  <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">
-                      {u.ipAddress}:{u.port}
-                    </TableCell>
-                    <TableCell className="tabular-nums">{u.meterCount}</TableCell>
-                    <TableCell className="text-right">
-                      {showDeleted ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRestore(u)}
-                          aria-label="Geri yükle"
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <div className="flex justify-end gap-0.5">
+                {list.map((u, i) => {
+                  const isSelected = selected?.id === u.id
+                  return (
+                    <TableRow
+                      key={u.id}
+                      className={[
+                        i % 2 === 1 ? 'bg-surface/60' : '',
+                        !showDeleted ? 'cursor-pointer' : '',
+                        isSelected ? '!bg-primary/5' : '',
+                      ].join(' ')}
+                      onClick={() => handleRowClick(u)}
+                    >
+                      <TableCell className="pr-0 w-5">
+                        {!showDeleted && (
+                          <ChevronRight
+                            className={[
+                              'h-3.5 w-3.5 text-muted-foreground transition-transform',
+                              isSelected ? 'rotate-90' : '',
+                            ].join(' ')}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{u.name}</TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">
+                        {u.ipAddress}:{u.port}
+                      </TableCell>
+                      <TableCell className="tabular-nums">{u.meterCount}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        {showDeleted ? (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => startEdit(u)}
-                            aria-label="Düzenle"
+                            onClick={() => handleRestore(u)}
+                            aria-label="Geri yükle"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <RotateCcw className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive"
-                            onClick={() => setDeleting(u)}
-                            aria-label="Sil"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        ) : (
+                          <div className="flex justify-end gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => startEdit(u)}
+                              aria-label="Düzenle"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => setDeleting(u)}
+                              aria-label="Sil"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
+
+      {selected && !showDeleted && (
+        <UnitDetail unit={selected} onClose={() => setSelected(null)} />
+      )}
 
       <DeleteConfirmDialog
         open={Boolean(deleting)}
