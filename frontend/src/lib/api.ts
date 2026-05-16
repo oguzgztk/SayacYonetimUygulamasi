@@ -15,8 +15,8 @@ export async function fetchMeters(): Promise<Meter[]> {
   return data
 }
 
-export async function fetchMeter(id: number): Promise<Meter> {
-  const { data } = await api.get<Meter>(`${sayacPath}/${id}`)
+export async function fetchDeletedMeters(): Promise<Meter[]> {
+  const { data } = await api.get<Meter[]>(`${sayacPath}/deleted`)
   return data
 }
 
@@ -25,10 +25,14 @@ export async function createMeter(dto: MeterCreateDto): Promise<Meter> {
   return data
 }
 
-export async function updateMeter(meter: Meter): Promise<void> {
-  await api.put(`${sayacPath}/${meter.id}`, meter)
+export async function updateMeter(id: number, dto: MeterCreateDto): Promise<void> {
+  await api.put(`${sayacPath}/${id}`, dto)
 }
 
-export async function deleteMeter(id: number): Promise<void> {
+export async function softDeleteMeter(id: number): Promise<void> {
   await api.delete(`${sayacPath}/${id}`)
+}
+
+export async function restoreMeter(id: number): Promise<void> {
+  await api.post(`${sayacPath}/${id}/restore`)
 }

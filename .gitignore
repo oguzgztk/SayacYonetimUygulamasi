@@ -369,3 +369,7 @@ frontend/.env.local
 frontend/.env.*.local
 *.local
 .DS_Store
+
+# Legacy copies from old machine (optional — remove folders when no longer needed)
+# SayacYonetimUygulamasi/
+# SayacYonetimFrontend/

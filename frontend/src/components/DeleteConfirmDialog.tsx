@@ -7,19 +7,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import type { Meter } from '@/types/meter'
 
 interface DeleteConfirmDialogProps {
-  meter: Meter | null
   open: boolean
+  title?: string
+  description?: string
+  confirmLabel?: string
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
   isPending: boolean
 }
 
 export function DeleteConfirmDialog({
-  meter,
   open,
+  title = 'Sil',
+  description = '',
+  confirmLabel = 'Sil',
   onOpenChange,
   onConfirm,
   isPending,
@@ -28,19 +31,15 @@ export function DeleteConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Okumayı sil</DialogTitle>
-          <DialogDescription>
-            {meter
-              ? `"${meter.meterNumber}" sayacına ait okumayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`
-              : ''}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={isPending}>
             İptal
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={isPending}>
-            {isPending ? 'Siliniyor...' : 'Sil'}
+            {isPending ? 'İşleniyor…' : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
